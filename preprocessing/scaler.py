@@ -23,11 +23,20 @@ class StandardScaler():
     X_new = Xi-X_mean/standard_deviation
     '''
     def fit_transform(self, df):
-        standarized_df = df.copy() 
+        self.means = {}
+        self.deviations = {}
+        self.columns = df.columns
         for column in df.columns:
             feature_mean = np.mean(df[column].values)
+            self.means[column] = feature_mean
             feature_standard_deviation = np.std(df[column].values)
-            standarized_df[column] = df[column].apply(self.scaleFeature, feature_mean = feature_mean, feature_standard_deviation = feature_standard_deviation)
+            self.deviations[column] = feature_standard_deviation
+        return self.transform(df)
+
+    def transform(self, test_data):
+        standarized_df = test_data.copy() 
+        for column in self.columns:
+            standarized_df[column] = test_data[column].apply(self.scaleFeature, feature_mean = self.means[column], feature_standard_deviation = self.deviations[column])
         return standarized_df
     
     def scaleFeature(self, feature_val, feature_mean, feature_standard_deviation):
