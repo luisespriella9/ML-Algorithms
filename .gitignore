@@ -130,3 +130,6 @@ dmypy.json
 
 #vs code
 .vs
+
+#data-sets
+data-sets/
