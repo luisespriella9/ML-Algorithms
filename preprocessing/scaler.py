@@ -7,12 +7,22 @@ class MinMaxScaler:
     X_new = Xi-min(X)/(max(X)-min(X)) 
     '''
     def fit_transform(self, df):
-        standarized_df = df.copy() 
-        for column in df.columns:
+        self.mins = {}
+        self.max = {}
+        self.columns = df.columns
+        for column in self.columns:
             feature_min = np.min(df[column].values)
+            self.mins[column] = feature_min
             feature_max = np.max(df[column].values)
-            standarized_df[column] = df[column].apply(self.scaleFeature, feature_min = feature_min, feature_max = feature_max)
+            self.max[column] = feature_max
+        return self.transform(df)
+
+    def transform(self, test_data):
+        standarized_df = test_data.copy() 
+        for column in self.columns:
+            standarized_df[column] = test_data[column].apply(self.scaleFeature, feature_min = self.mins[column], feature_max = self.max[column])
         return standarized_df
+
         
     def scaleFeature(self, feature_val, feature_min, feature_max):
         return ((feature_val-feature_min)*(self.feature_range[1]-self.feature_range[0])/(feature_max-feature_min))
