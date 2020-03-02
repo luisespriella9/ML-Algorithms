@@ -1,0 +1,268 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import os\n",
+    "import tensorflow as tf\n",
+    "import matplotlib\n",
+    "import matplotlib.pyplot as plt\n",
+    "import pandas as pd\n",
+    "import numpy as np\n",
+    "from sklearn import preprocessing \n",
+    "import math\n",
+    "import warnings\n",
+    "\n",
+    "'''\n",
+    "My Own Algorithms Import\n",
+    "'''\n",
+    "from preprocessing.scaler import MinMaxScaler, StandardScaler\n",
+    "from preprocessing.pca import PCA\n",
+    "from analysis.measure import ConfusionMatrix, ROC\n",
+    "\n",
+    "#Ignore Warnings\n",
+    "warnings.filterwarnings(\"ignore\")\n",
+    "\n",
+    "#read data\n",
+    "golf_data = pd.read_csv('data-sets/golf-weather.csv')\n",
+    "\n",
+    "#randomize data with given seed\n",
+    "golf_data = golf_data.reindex(np.random.RandomState(seed=42).permutation(golf_data.index))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Analyze the Data"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "<class 'pandas.core.frame.DataFrame'>\n",
+      "Int64Index: 14 entries, 9 to 6\n",
+      "Data columns (total 5 columns):\n",
+      "Outlook     14 non-null object\n",
+      "Temp        14 non-null object\n",
+      "Humidity    14 non-null object\n",
+      "Windy       14 non-null object\n",
+      "Play        14 non-null object\n",
+      "dtypes: object(5)\n",
+      "memory usage: 672.0+ bytes\n"
+     ]
+    }
+   ],
+   "source": [
+    "golf_data.info()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>Outlook</th>\n",
+       "      <th>Temp</th>\n",
+       "      <th>Humidity</th>\n",
+       "      <th>Windy</th>\n",
+       "      <th>Play</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>9</th>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>Mild</td>\n",
+       "      <td>Normal</td>\n",
+       "      <td>f</td>\n",
+       "      <td>yes</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>11</th>\n",
+       "      <td>Overcast</td>\n",
+       "      <td>Mild</td>\n",
+       "      <td>High</td>\n",
+       "      <td>t</td>\n",
+       "      <td>yes</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>Rainy</td>\n",
+       "      <td>Hot</td>\n",
+       "      <td>High</td>\n",
+       "      <td>f</td>\n",
+       "      <td>no</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>12</th>\n",
+       "      <td>Overcast</td>\n",
+       "      <td>Hot</td>\n",
+       "      <td>Normal</td>\n",
+       "      <td>f</td>\n",
+       "      <td>yes</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>5</th>\n",
+       "      <td>Sunny</td>\n",
+       "      <td>Cool</td>\n",
+       "      <td>Normal</td>\n",
+       "      <td>t</td>\n",
+       "      <td>no</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "     Outlook  Temp Humidity Windy Play\n",
+       "9      Sunny  Mild   Normal     f  yes\n",
+       "11  Overcast  Mild     High     t  yes\n",
+       "0      Rainy   Hot     High     f   no\n",
+       "12  Overcast   Hot   Normal     f  yes\n",
+       "5      Sunny  Cool   Normal     t   no"
+      ]
+     },
+     "execution_count": 3,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "golf_data.head()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Set Up Data"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "seventy_five__percentile = int(len(golf_data)*0.75) \n",
+    "x_train, y_train = golf_data.drop(['Play'], axis=1)[:seventy_five__percentile], golf_data['Play'][:seventy_five__percentile]\n",
+    "x_test, y_test = golf_data.drop(['Play'], axis=1)[110:], golf_data['Play'][110:]\n",
+    "x_train.reset_index(drop=True, inplace=True)\n",
+    "x_test.reset_index(drop=True, inplace=True)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Naive Bayes Classifier"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "class NaiveBayes():\n",
+    "        \n",
+    "    def fit(self, x_train, results):\n",
+    "        column_dicts = {}\n",
+    "        for column in x_train.columns:\n",
+    "            dict_name = str(column)+\"_dict\"\n",
+    "            column_dicts[dict_name]= {}\n",
+    "            index = 0\n",
+    "            for val in x_train[column]:\n",
+    "                val_no = str(val) + \"_no\"\n",
+    "                val_yes = str(val) + \"_yes\"\n",
+    "                if (val_no not in column_dicts[dict_name]):\n",
+    "                    column_dicts[dict_name][val_no] = 0\n",
+    "                    column_dicts[dict_name][val_yes] = 0\n",
+    "                if (results[index] == 1):\n",
+    "                    column_dicts[dict_name][val_yes]+=1\n",
+    "                elif (results[index] == 0):\n",
+    "                    column_dicts[dict_name][val_no]+=1\n",
+    "                index+=1\n",
+    "        print(column_dicts)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "{'Outlook_dict': {'Sunny_no': 2, 'Sunny_yes': 2, 'Overcast_no': 0, 'Overcast_yes': 3, 'Rainy_no': 2, 'Rainy_yes': 1}, 'Temp_dict': {'Mild_no': 1, 'Mild_yes': 2, 'Hot_no': 2, 'Hot_yes': 2, 'Cool_no': 1, 'Cool_yes': 2}, 'Humidity_dict': {'Normal_no': 1, 'Normal_yes': 4, 'High_no': 3, 'High_yes': 2}, 'Windy_dict': {'f_no': 1, 'f_yes': 5, 't_no': 3, 't_yes': 1}}\n"
+     ]
+    }
+   ],
+   "source": [
+    "naive_bayes = NaiveBayes()\n",
+    "y_train = [1 if x == \"yes\" else 0 for x in y_train.values]\n",
+    "naive_bayes.fit(x_train, y_train)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.7.6"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 4
+}
