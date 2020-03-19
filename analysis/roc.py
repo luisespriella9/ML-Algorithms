@@ -1,7 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import math
-from operator import itemgetter 
 
 class ROC:
     def plot(self, label, prediction_probabilities, actual_results, threshold = [0, .2, .4, .6, .8, 1], color="blue"):
