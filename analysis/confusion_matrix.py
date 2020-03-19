@@ -80,6 +80,20 @@ class ConfusionMatrix:
         '''
         return ((self.true_positives*self.true_negatives)-(self.false_positives*self.false_negatives))/math.sqrt((self.true_positives+self.false_positives)*(self.true_positives+self.false_negatives)*(self.true_negatives+self.false_positives)*(self.true_negatives+self.false_negatives))
     
+    def measurements(self, result, label = None):
+        if (label == None):
+            label = str(result)
+        self.measure(result)
+        print("Confusion Matrix label measurements for ", label)
+        print("Accuracy rate", self.accuracy_rate())
+        print("Error rate", self.error_rate())
+        print("Recall", self.recall())
+        print("False Positive Rate", self.false_positive_rate())
+        print("True Negative Rate", self.true_negative_rate())
+        print("Precision", self.precision())
+        print("Prevalence", self.prevalence())
+        print("Matthews Correlation Coefficient", self.matthews_correlation_coefficient())
+
     def plot(self):
         for i in range(len(self.prediction_results)):
             if self.prediction_results[i] == self.actual_results[i]:
