@@ -1,122 +1,108 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from random import random
 
 class LinearRegression:
-    def fit(self, x_train, y_train, alpha = 0.01, iterations = 1000):
+    def fit(self, x_train, y_train, alpha = 0.01, regularization = 0.1, epochs=1000):
         '''
         using gradient descent for faster calculations
         '''
+        # reshape x
+        m_samples, n_features = x_train.shape
+        x_train = x_train.T # X should have a sample per column X shape: (n features, m samples)
+        x_train = np.insert(x_train, 0, np.ones((1, m_samples)), 0) 
+        n_features = n_features + 1
+        # randomize theta
+        
+        theta = np.random.rand(n_features, 1)
+        self.cost_history = []
+        # fit data
+        for epoch in range(epochs):
+            predictions = []
+            for i in range(m_samples):
+                gradient, prediction = self.gradient(x_train[:, i], y_train[i], theta, regularization)
+                predictions.append(prediction)
+                theta = theta - (alpha*gradient)
+            cost = self.cost(predictions, y_train, theta, regularization)
+            self.cost_history.append(cost)
+                
+        # save to model
+        self.theta = theta
         self.x_train = x_train
-        self.y_train = y_train
-        self.n = len(x_train) 
-        self.alpha = alpha
-        self.iterations = iterations
-        x_matrix_df = pd.DataFrame([1 for i in range(self.n)], columns=['b_0 index'])
-        
-        for col in x_train.columns:
-            x_matrix_df[col] = x_train[col]
-        x_matrix = x_matrix_df.to_numpy()
-        
-        #Actual expensive function without gradient descent
-        #b_matrix = np.dot(np.dot(np.linalg.inv(np.dot(np.transpose(x_matrix), x_matrix)), np.transpose(x_matrix)), y_train)
-        self.theta = self.gradientDescent(x_matrix, y_train, [0]*(len(x_train.columns)+1))
         return self.theta
         
-    def plot_regression_line(self, y_label = 'Prediction'):
-        for i in range(len(self.x_train.columns)):
-            plt.scatter(self.x_train[self.x_train.columns[i]], self.y_train, color = "m", 
-               marker = "o") 
-            y_pred = self.theta[0] + (self.theta[i+1]*self.x_train[self.x_train.columns[i]])
-            plt.plot(self.x_train[self.x_train.columns[i]], y_pred, color = "g")
-            plt.xlabel(self.x_train.columns[i]) 
-            plt.ylabel(y_label) 
-            plt.show()
             
     def predict(self, x_test):
-        test_size = len(x_test)
-        x_test_matrix_df = pd.DataFrame([1 for i in range(test_size)], columns=['b_0 index'])
-        for col in x_test.columns:
-            x_test_matrix_df[col] = x_test[col]
-        x_test_matrix = x_test_matrix_df.to_numpy()
-        return np.dot(x_test_matrix, self.theta)
+        m_samples, _ = x_test.shape
+        x_test = x_test.T # X should have a sample per column X shape: (n features, m samples)
+        x_test = np.insert(x_test, 0, np.ones((1, m_samples)), 0) 
+        prediction = np.dot(self.theta.T, x_test)
+        return prediction[0]
     
-    def gradientDescent(self, X, y, theta):
-        cost_history = [0] * self.iterations
-        self.cost_history = []
-        XTrans = np.transpose(X)
-        for i in range(self.iterations):
-            y_pred = np.dot(X, theta)
-            loss = y_pred - y
-            gradient = np.dot(XTrans, loss) 
-            theta -= ((self.alpha/ self.n) * gradient)
-            if (np.isnan(theta).any() or np.isinf(theta).any()):
-                break
-            cost = self.costFunction(loss, self.n)
-            self.cost_history.append((cost, theta))
-        return min(self.cost_history, key = lambda t: t[0])[1]
-
-    def plotCostPerIteration(self):
-        costs = [c[0] for c in self.cost_history]
-        plt.plot(np.arange(len(self.cost_history)), costs)
-        plt.xlabel("iterations") 
-        plt.ylabel("cost") 
-        plt.show()
+    def gradient(self, x, y, theta, regularization):
+        prediction = np.dot(theta.T, x)[0]
+        error = prediction - y
+        x = x.reshape(-1, 1)
+        theta_grad = np.insert(theta[1:], 0, 0, 0)*regularization
+        gradient = np.dot(x, error)
+        return gradient, prediction
         
-    def costFunction(self, loss, m):
-        J = np.sum((loss) ** 2)/(2 * m)
-        return J
+    def cost(self, predictions, y, theta, regularization):
+        return np.sum(np.square(predictions-y))/(2*len(y)) + (np.sum(np.square(theta[1:]))*regularization)/(2*len(y))
+    
+    def plot_cost_per_epoch(self):
+        plt.plot(np.arange(0, len(self.cost_history), 1), self.cost_history)
 
 class LogisticRegression:
-    def fit(self, x_train, y_train, alpha = 0.000001, iterations = 1000):
+    def fit(self, x_train, y_train, alpha = 0.01, regularization = 0.1, epochs=100):
         '''
         using gradient descent for faster calculations
         '''
+        # reshape x
+        m_samples, n_features = x_train.shape
+        x_train = x_train.T # X should have a sample per column X shape: (n features, m samples)
+        x_train = np.insert(x_train, 0, np.ones((1, m_samples)), 0) 
+        n_features = n_features + 1
+        # randomize theta
+        
+        theta = np.random.rand(n_features, 1)
+        self.cost_history = []
+        # fit data
+        for epoch in range(epochs):
+            predictions = []
+            for i in range(m_samples):
+                gradient, prediction = self.gradient(x_train[:, i], y_train[i], theta, regularization)
+                predictions.append(prediction)
+                theta = theta - (alpha*gradient)
+            cost = self.cost(predictions, y_train, theta, regularization)
+            self.cost_history.append(cost)
+                
+        # save to model
+        self.theta = theta
         self.x_train = x_train
-        self.y_train = y_train
-        self.alpha = alpha
-        self.iterations = iterations
-        self.m = len(x_train) 
-        self.x_matrix = x_train.to_numpy()
-        self.XTrans = np.transpose(self.x_matrix)
-        theta_default = [0]*(len(self.x_train.columns))
-        self.theta = self.gradientDescent(self.x_matrix, self.y_train, theta_default)
         return self.theta
     
-    def plot(self, y_label = 'Prediction'):
-        for i in range(len(self.x_train.columns)):
-            plt.scatter(self.x_train[self.x_train.columns[i]], self.y_train, color = "m", 
-               marker = "o") 
-            y_pred = self.computePrediction(self.x_train, self.theta)
-            plt.scatter(self.x_train[self.x_train.columns[i]], y_pred, color = "g")
-            plt.xlabel(self.x_train.columns[i]) 
-            plt.ylabel(y_label) 
-            plt.show()
-    
-    def computePrediction(self, x, theta):
-        scores = np.dot(x, theta)
-        return self.sigmoid(scores)
-    
-    def predict(self, x_test):
-        return self.computePrediction(x_test, self.theta)
-    
-    def gradientDescent(self, X, y, theta):
-        cost_history = [0] * self.iterations
-        self.cost_history = []
-        for i in range(self.iterations):
-            y_pred = self.computePrediction(X, theta)
-            loss = y_pred - y
-            gradient = np.dot(self.XTrans, loss) 
-            theta -= (self.alpha * gradient)
-            if (np.isnan(theta).any() or np.isinf(theta).any()):
-                break
-            cost = self.costFunction(y_pred, y)
-            self.cost_history.append((cost, theta))
-        return min(self.cost_history, key = lambda t: t[0])[1]
-    
-    def sigmoid(self, scores):
-        return 1.0 / (1+np.exp(-scores))
+    def sigmoid(self, z):
+        return 1/(1+np.exp(-z))
         
-    def costFunction(self, h, y):
-        return (-y * np.log(h) - (1 - y) * np.log(1 - h)).mean()
+            
+    def predict(self, x_test):
+        m_samples, _ = x_test.shape
+        x_test = x_test.T # X should have a sample per column X shape: (n features, m samples)
+        x_test = np.insert(x_test, 0, np.ones((1, m_samples)), 0) 
+        prediction = self.sigmoid(np.dot(self.theta.T, x_test))
+        return prediction[0]
+    
+    def gradient(self, x, y, theta, regularization):
+        prediction = self.sigmoid(np.dot(theta.T, x))[0]
+        error = prediction - y
+        x = x.reshape(-1, 1)
+        theta_grad = np.insert(theta[1:], 0, 0, 0)*regularization
+        gradient = np.dot(x, error)
+        return gradient, prediction
+        
+    def cost(self, predictions, y, theta, regularization):
+        return -np.sum(y*np.log(predictions)+((1-y)*np.log([1-p for p in predictions])))/len(y)
+    
+    def plot_cost_per_epoch(self):
+        plt.plot(np.arange(0, len(self.cost_history), 1), self.cost_history)
